@@ -1,17 +1,18 @@
 # Building LÖVE and balatro.app
 
-The port builds against a **PeOS checkout**: its cross toolchain
+The port builds against **PeOS's tree** (private): its cross toolchain
 (`x86_64-peos-gcc`), its C library and the libraries already ported there
 (Mesa for OpenGL, FreeType, zlib, OpenAL).
 
-**PeOS's own repository is not public yet.** The C library and its
-headers are, in the [Starlight App Kit](https://github.com/teddi201252/starlight-app-kit)
-(`sdk/`), and so is the toolchain's recipe (in
-[peos-d2d](https://github.com/teddi201252/peos-d2d), `toolchain/`); the
-ported libraries this port links (Mesa, FreeType, OpenAL) will come with
-the kit too ("the ports' SDK", planned). Until then this repository is
-mostly to read: how a Linux program with SDL2, OpenGL, OpenAL and a JIT
-becomes a PeOS app. With a PeOS checkout:
+**PeOS's own repository is private, and stays private.** What is public:
+PeOS's C library and its headers, in the
+[Starlight App Kit](https://github.com/teddi201252/starlight-app-kit)
+(`sdk/`), and the toolchain's recipe (in
+[peos-d2d](https://github.com/teddi201252/peos-d2d), `toolchain/`). The
+ported libraries this port links (Mesa, FreeType, OpenAL) are planned to
+come with the kit ("the ports' SDK"). Until they do, the build below needs
+PeOS's private tree, and this repository is to read: how a Linux program
+with SDL2, OpenGL, OpenAL and a JIT becomes a PeOS app. With PeOS's tree:
 
 ## 1. PeOS
 

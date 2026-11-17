@@ -12,7 +12,7 @@ something yourself, the files here are small and commented.
 | I want to... | Go to |
 | --- | --- |
 | **Play** Balatro on PeOS | [Play Balatro](#play-balatro) |
-| **Rebuild** LÖVE and balatro.app | [docs/BUILDING.md](docs/BUILDING.md) (needs a PeOS checkout: not public yet) |
+| **Rebuild** LÖVE and balatro.app | [docs/BUILDING.md](docs/BUILDING.md) (needs PeOS's tree, which is private) |
 | **Port** a program of my own | [How the port is made](#how-the-port-is-made) |
 
 ## Play Balatro
