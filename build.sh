@@ -196,7 +196,7 @@ stick() {   # the user's game on a stick image, never anywhere else (build/ is n
     mkdir -p "$out"
     mb=$(( $(du -sm "$src" | cut -f1) + 64 ))
     rm -f "$out/disk.img" "$out/part.img"
-    dd if=/dev/zero of="$out/part.img" bs=1m count=0 seek="$mb" 2>/dev/null
+    dd if=/dev/zero of="$out/part.img" bs=1048576 count=0 seek="$mb" 2>/dev/null   # 1m is macOS's only, 1M Linux's only
     mkfs.fat -F 32 -h $((part / 512)) -n GAMES "$out/part.img" >/dev/null
     mcopy -i "$out/part.img" "$src" "::/$(basename "$src")"
     dd if=/dev/zero of="$out/disk.img" bs="$part" count=1 2>/dev/null
