@@ -1,0 +1,160 @@
+diff -ruN love-11.5.orig/src/common/config.h love-11.5/src/common/config.h
+--- a/src/common/config.h	2026-11-17 13:12:04
++++ b/src/common/config.h	2026-11-17 13:12:04
+@@ -48,6 +48,12 @@
+ #		define LOVE_MACOSX 1
+ #	endif
+ #endif
++#if defined(__peos__)
++// PeOS (https://github.com/teddi201252/peos): a POSIX-like C library for
++// ports, so LÖVE's "Linux" code paths; love.system.getOS says "PeOS".
++#	define LOVE_LINUX 1
++#	define LOVE_PEOS 1
++#endif
+ #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+ // I know it's not linux, but it seems most "linux-only" code is bsd-compatible
+ #	define LOVE_LINUX 1
+diff -ruN love-11.5.orig/src/libraries/physfs/physfs_platforms.h love-11.5/src/libraries/physfs/physfs_platforms.h
+--- a/src/libraries/physfs/physfs_platforms.h	2026-11-17 13:12:04
++++ b/src/libraries/physfs/physfs_platforms.h	2026-11-17 13:13:25
+@@ -69,6 +69,10 @@
+ #elif defined(__QNX__)
+ #  define PHYSFS_PLATFORM_QNX 1
+ #  define PHYSFS_PLATFORM_POSIX 1
++#elif defined(__peos__)  /* PeOS: a POSIX-like C library, no CD-ROMs */
++#  define PHYSFS_NO_CDROM_SUPPORT 1
++#  define PHYSFS_PLATFORM_UNIX 1
++#  define PHYSFS_PLATFORM_POSIX 1
+ #elif defined(unix) || defined(__unix__)
+ #  define PHYSFS_PLATFORM_UNIX 1
+ #  define PHYSFS_PLATFORM_POSIX 1
+diff -ruN love-11.5.orig/src/love.cpp love-11.5/src/love.cpp
+--- a/src/love.cpp	2026-11-17 13:12:03
++++ b/src/love.cpp	2026-11-17 13:32:38
+@@ -18,6 +18,7 @@
+  * 3. This notice may not be removed or altered from any source distribution.
+  **/
+ 
++#include <cstring>
+ #include "common/version.h"
+ #include "common/runtime.h"
+ #include "modules/love/love.h"
+@@ -145,8 +146,47 @@
+ 	DONE_RESTART,
+ };
+ 
++#ifdef LOVE_PEOS
++#include <sys/stat.h>
++#include <string>
++#include <vector>
++#endif
++
+ static DoneAction runlove(int argc, char **argv, int &retval)
+ {
++#ifdef LOVE_PEOS
++	// PeOS (an app.ini's args): "--first A B ...": the first of the games
++	// that exists, looked for again at every restart (balatro.app: the game
++	// once its setup has copied it in place and restarted). A path not
++	// starting with '/' is the bundle's: beside app.bin (argv[0]), wherever
++	// the bundle is (/system/apps or /apps).
++	static std::vector<std::string> peos_paths;
++	std::vector<char *> peos_argv;
++	if (argc > 2 && strcmp(argv[1], "--first") == 0)
++	{
++		std::string dir = argv[0];
++		size_t slash = dir.rfind('/');
++		dir = slash == std::string::npos ? std::string(".") : dir.substr(0, slash);
++		peos_paths.clear();
++		for (int i = 2; i < argc; i++)
++			peos_paths.push_back(argv[i][0] == '/' ? std::string(argv[i]) : dir + "/" + argv[i]);
++		size_t pick = peos_paths.size() - 1;
++		for (size_t i = 0; i < peos_paths.size(); i++)
++		{
++			struct stat st;
++			if (stat(peos_paths[i].c_str(), &st) == 0)
++			{
++				pick = i;
++				break;
++			}
++		}
++		peos_argv.push_back(argv[0]);
++		peos_argv.push_back((char *) peos_paths[pick].c_str());
++		peos_argv.push_back(nullptr);
++		argc = 2;
++		argv = peos_argv.data();
++	}
++#endif
+ 	// Oh, you just want the version? Okay!
+ 	if (argc > 1 && strcmp(argv[1], "--version") == 0)
+ 	{
+diff -ruN love-11.5.orig/src/modules/filesystem/physfs/Filesystem.cpp love-11.5/src/modules/filesystem/physfs/Filesystem.cpp
+--- a/src/modules/filesystem/physfs/Filesystem.cpp	2026-11-17 13:12:04
++++ b/src/modules/filesystem/physfs/Filesystem.cpp	2026-11-17 13:24:59
+@@ -536,6 +536,9 @@
+ #ifdef LOVE_IOS
+ 	// PHYSFS_getUserDir doesn't give exactly the path we want on iOS.
+ 	static std::string userDir = normalize(love::ios::getHomeDirectory());
++#elif defined(LOVE_PEOS)
++	// PeOS: an app's own files are under /starlight/config (its app.ini's paths)
++	static std::string userDir = "/starlight/config";
+ #else
+ 	static std::string userDir = normalize(PHYSFS_getUserDir());
+ #endif
+@@ -559,6 +562,8 @@
+ 		appdata = normalize(udir);
+ #elif defined(LOVE_IOS)
+ 		appdata = normalize(love::ios::getAppdataDirectory());
++#elif defined(LOVE_PEOS)
++		appdata = getUserDirectory();
+ #elif defined(LOVE_LINUX)
+ 		char *xdgdatahome = getenv("XDG_DATA_HOME");
+ 		if (!xdgdatahome)
+diff -ruN love-11.5.orig/src/modules/love/love.cpp love-11.5/src/modules/love/love.cpp
+--- a/src/modules/love/love.cpp	2026-11-17 13:12:04
++++ b/src/modules/love/love.cpp	2026-11-17 13:29:33
+@@ -166,6 +166,12 @@
+ 	extern int luaopen_love_boot(lua_State*);
+ }
+ 
++#if defined(LOVE_PEOS)
++// PeOS: a module left out of the build (physics, video) loads as nothing, so
++// a game whose conf.lua leaves it on still starts (love.physics stays nil).
++static int luaopen_love_absent(lua_State *) { return 0; }
++#endif
++
+ static const luaL_Reg modules[] = {
+ #if defined(LOVE_ENABLE_AUDIO)
+ 	{ "love.audio", luaopen_love_audio },
+@@ -202,6 +208,8 @@
+ #endif
+ #if defined(LOVE_ENABLE_PHYSICS)
+ 	{ "love.physics", luaopen_love_physics },
++#elif defined(LOVE_PEOS)
++	{ "love.physics", luaopen_love_absent },
+ #endif
+ #if defined(LOVE_ENABLE_SOUND)
+ 	{ "love.sound", luaopen_love_sound },
+@@ -220,6 +228,8 @@
+ #endif
+ #if defined(LOVE_ENABLE_VIDEO)
+ 	{ "love.video", luaopen_love_video },
++#elif defined(LOVE_PEOS)
++	{ "love.video", luaopen_love_absent },
+ #endif
+ #if defined(LOVE_ENABLE_WINDOW)
+ 	{ "love.window", luaopen_love_window },
+diff -ruN love-11.5.orig/src/modules/system/System.cpp love-11.5/src/modules/system/System.cpp
+--- a/src/modules/system/System.cpp	2026-11-17 13:12:04
++++ b/src/modules/system/System.cpp	2026-11-17 13:12:04
+@@ -75,7 +75,11 @@
+ #elif defined(LOVE_ANDROID)
+ 	return "Android";
+ #elif defined(LOVE_LINUX)
++#if defined(LOVE_PEOS)
++	return "PeOS";
++#else
+ 	return "Linux";
++#endif
+ #else
+ 	return "Unknown";
+ #endif

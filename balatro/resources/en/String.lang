@@ -1,0 +1,8 @@
+# Balatro (English)
+# key=text, see peos/lang.h for the format.
+title=Balatro
+setup.looking=Balatro is your own game: copy Balatro.love (from Steam on a Mac: Balatro.app, Contents/Resources) or Balatro.exe (from Steam on Windows) to a USB stick and put it in, or place it in /home. It is copied once.
+setup.copying=Copying the game from
+setup.done=Done. Starting Balatro...
+setup.copy_failed=The copy failed:
+setup.cannot_write=Cannot write to

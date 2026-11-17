@@ -1,0 +1,75 @@
+# make test-balatro: balatro.app from the dock (the first tile), the copy
+# from the stick, then the game. The window's body starts at 189,111 of
+# the screen (1280x800).
+wait 5
+move 74 89
+click
+wait 90
+# the menu: PLAY (Balatro wants the press and the release in different
+# frames: a QEMU click sends both at once)
+move 489 663
+wait 1
+down
+wait 1.5
+up
+wait 15
+# a new profile: the tutorial (Jimbo) over the blinds: Skip
+move 1179 339
+wait 1
+down
+wait 1.5
+up
+wait 8
+# the small blind: Select
+move 564 339
+wait 1
+down
+wait 1.5
+up
+wait 15
+# the tutorial again, over the hand: Skip
+move 1179 339
+wait 1
+down
+wait 1.5
+up
+wait 15
+wait 20
+# five cards of the hand, then Play Hand (the scoring: the heaviest part)
+move 513 555
+wait 1
+down
+wait 1.5
+up
+wait 1
+move 579 555
+wait 1
+down
+wait 1.5
+up
+wait 1
+move 645 555
+wait 1
+down
+wait 1.5
+up
+wait 1
+move 714 555
+wait 1
+down
+wait 1.5
+up
+wait 1
+move 774 555
+wait 1
+down
+wait 1.5
+up
+wait 1
+move 645 672
+wait 1
+down
+wait 1.5
+up
+wait 30
+shot after

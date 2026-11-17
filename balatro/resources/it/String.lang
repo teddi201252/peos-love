@@ -1,0 +1,8 @@
+# Balatro (Italiano)
+# key=text, see peos/lang.h for the format.
+title=Balatro
+setup.looking=Balatro è un gioco tuo: copia Balatro.love (da Steam su Mac: Balatro.app, Contents/Resources) o Balatro.exe (da Steam su Windows) su una chiavetta USB e inseriscila, oppure mettilo in /home. Lo copio una volta sola.
+setup.copying=Copio il gioco da
+setup.done=Fatto. Avvio Balatro...
+setup.copy_failed=La copia non è riuscita:
+setup.cannot_write=Non posso scrivere in

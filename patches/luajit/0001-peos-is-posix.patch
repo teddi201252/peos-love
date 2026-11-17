@@ -1,0 +1,40 @@
+diff --git a/src/lj_arch.h b/src/lj_arch.h
+index 7b7907ef..c1eb9e09 100644
+--- a/src/lj_arch.h
++++ b/src/lj_arch.h
+@@ -90,6 +90,9 @@
+ #define LUAJIT_OS	LUAJIT_OS_POSIX
+ #elif defined(__HAIKU__)
+ #define LUAJIT_OS	LUAJIT_OS_POSIX
++#elif defined(__peos__)
++#define LJ_TARGET_PEOS		1
++#define LUAJIT_OS	LUAJIT_OS_POSIX
+ #elif defined(__CYGWIN__)
+ #define LJ_TARGET_CYGWIN	1
+ #define LUAJIT_OS	LUAJIT_OS_POSIX
+diff --git a/src/lj_prng.c b/src/lj_prng.c
+index 6e5a9921..460d493b 100644
+--- a/src/lj_prng.c
++++ b/src/lj_prng.c
+@@ -125,7 +125,7 @@ static PRGR libfunc_rgr;
+ #if __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+ #define LJ_TARGET_HAS_GETENTROPY	1
+ #endif
+-#elif (LJ_TARGET_BSD && !defined(__NetBSD__)) || LJ_TARGET_SOLARIS || LJ_TARGET_CYGWIN || LJ_TARGET_QNX || LJ_TARGET_HURD
++#elif (LJ_TARGET_BSD && !defined(__NetBSD__)) || LJ_TARGET_SOLARIS || LJ_TARGET_CYGWIN || LJ_TARGET_QNX || LJ_TARGET_HURD || defined(LJ_TARGET_PEOS)
+ #define LJ_TARGET_HAS_GETENTROPY	1
+ #endif
+ 
+diff --git a/src/luajit.c b/src/luajit.c
+index 65d55c3c..d677ac22 100644
+--- a/src/luajit.c
++++ b/src/luajit.c
+@@ -36,7 +36,7 @@
+ #if !LJ_TARGET_CONSOLE
+ #include <signal.h>
+ 
+-#if LJ_TARGET_POSIX
++#if LJ_TARGET_POSIX && !defined(LJ_TARGET_PEOS)   /* PeOS: signal() only */
+ /* Improve signal handling on POSIX. Try CTRL-C on: luajit -e 'io.read()' */
+ static void signal_set(int sig, void (*h)(int))
+ {
