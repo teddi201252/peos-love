@@ -5,11 +5,11 @@
 # come here (Balatro's from the Steam copy: Balatro.love on a Mac, the zip
 # inside Balatro.exe on Windows).
 #
-#   userland/ports/love/build.sh fetch     LuaJIT, LÖVE 11.5, libogg, libvorbis, SDL2's headers, PeOS's patches
+#   userland/ports/love/build.sh fetch     LuaJIT, LÖVE 11.5, libogg, libvorbis, PeOS's patches
 #   userland/ports/love/build.sh luajit    LuaJIT 2.1 (the JIT on: pages RW then RX, capability "jit")
 #   userland/ports/love/build.sh vorbis    libogg and libvorbis
 #   userland/ports/love/build.sh love      LÖVE's objects and liblove.a
-#   userland/ports/love/build.sh link      SDL2 on PeOS (sdl2/), OpenAL in the sysroot, the love program
+#   userland/ports/love/build.sh link      OpenAL in the sysroot, the love program
 #   userland/ports/love/build.sh app       the bundle build/love/balatro.app (LÖVE and the setup, no game)
 #   userland/ports/love/build.sh all       all of it
 #   userland/ports/love/build.sh stick <Balatro.love|Balatro.exe>   the user's
@@ -48,8 +48,6 @@ OGG=libogg-1.3.5
 OGG_SHA256=c4d91be36fc8e54deae7575241e03f4211eb102afb3fc0775fbbc1b740016705
 VORBIS=libvorbis-1.3.7
 VORBIS_SHA256=b33cc4934322bcbf6efcbacf49e3ca01aadbea4114ec9589d1b1e9d20f72954b
-SDL2=SDL2-2.30.9   # its headers only (zlib): the same SHA-256 from GitHub and libsdl.org
-SDL2_SHA256=24b574f71c87a763f50704bbb630cbe38298d544a1f890f099a4696b1d6beba4
 
 sha256_check() {
     if command -v shasum >/dev/null; then shasum -a 256 -c -; else sha256sum -c -; fi
@@ -76,7 +74,6 @@ fetch() {
     fetch_one "https://github.com/love2d/love/releases/download/${LOVE#love-}/$LOVE-linux-src.tar.gz" "$LOVE_SHA256"
     fetch_one "https://downloads.xiph.org/releases/ogg/$OGG.tar.xz" "$OGG_SHA256"
     fetch_one "https://downloads.xiph.org/releases/vorbis/$VORBIS.tar.xz" "$VORBIS_SHA256"
-    fetch_one "https://github.com/libsdl-org/SDL/releases/download/release-${SDL2#SDL2-}/$SDL2.tar.gz" "$SDL2_SHA256"
     [ -d "$W/luajit/.git" ] || git clone -q "$LUAJIT_URL" "$W/luajit"
     git -C "$W/luajit" cat-file -e "$LUAJIT_COMMIT^{commit}" 2>/dev/null || git -C "$W/luajit" fetch -q origin
     git -C "$W/luajit" -c advice.detachedHead=false checkout -q --detach "$LUAJIT_COMMIT"
@@ -85,8 +82,7 @@ fetch() {
     unpack "$LOVE-linux-src.tar.gz" "$LOVE" "$HERE/patches/love"
     unpack "$OGG.tar.xz" "$OGG" ""
     unpack "$VORBIS.tar.xz" "$VORBIS" ""
-    unpack "$SDL2.tar.gz" "$SDL2" ""
-    echo "love: sources in $W (LuaJIT ${LUAJIT_COMMIT:0:12}, $LOVE, $OGG, $VORBIS, $SDL2's headers)"
+    echo "love: sources in $W (LuaJIT ${LUAJIT_COMMIT:0:12}, $LOVE, $OGG, $VORBIS)"
 }
 
 luajit_make() {
@@ -136,7 +132,7 @@ love() {   # LÖVE's sources with PeOS's config.h: what Balatro needs (no video 
     mkdir -p "$out/obj"
     cp "$HERE/config.h" "$src/config.h"
     local inc=(-DHAVE_CONFIG_H -I"$src/src" -I"$src/src/modules" -I"$src/src/libraries" -I"$src/src/libraries/physfs"
-        -I"$src/src/libraries/glslang" -I"$W/luajit/src" -I"$W/$SDL2/include" -I"$HERE/sdl2"
+        -I"$src/src/libraries/glslang" -I"$W/luajit/src" -I"$SYSROOT/usr/include/SDL2"
         -I"$W/vorbis-peos/include" -I"$SYSROOT/usr/include/freetype2" -I"$SYSROOT/usr/include"
         -I"$ROOT/userland/ports/openal/include")
     local files
@@ -163,18 +159,19 @@ love() {   # LÖVE's sources with PeOS's config.h: what Balatro needs (no video 
     echo "love: $(ls "$out"/obj | wc -l | tr -d ' ') objects, $out/liblove.a"
 }
 
-link() {   # the love program: LÖVE, LuaJIT, Vorbis, SDL2 on PeOS, OpenAL, Mesa
+link() {   # the love program: LÖVE, LuaJIT, Vorbis, SDL2 (userland/ports/sdl2), OpenAL, Mesa
     local out="$W/love-peos" cc="$PREFIX/bin/$TARGET-gcc"
     # OpenAL 1.1 on PeOS (userland/ports/openal), the sysroot's copy brought up to date
     rm -rf "$SYSROOT/usr/include/AL" && cp -R "$ROOT/userland/ports/openal/include/AL" "$SYSROOT/usr/include/"
     "$cc" -O2 -I"$SYSROOT/usr/include" -c "$ROOT/userland/ports/openal/al_peos.c" -o "$out/al_peos.o"
     rm -f "$SYSROOT/usr/lib/libopenal.a" && "$PREFIX/bin/$TARGET-ar" rcs "$SYSROOT/usr/lib/libopenal.a" "$out/al_peos.o"
-    "$cc" -std=gnu11 -O2 -Wall -Wextra -Werror -I"$W/$SDL2/include" -I"$SYSROOT/usr/include" \
-        -c "$HERE/sdl2/sdl2_peos.c" -o "$out/sdl2_peos.o"
-    "$PREFIX/bin/$TARGET-g++" -o "$out/love.elf" "$out/obj/love.cpp.o" "$out/sdl2_peos.o" \
+    [ -f "$SYSROOT/usr/lib/libSDL2.a" ] || { echo "love: no SDL2 in the sysroot: userland/ports/sdl2/build.sh"; exit 1; }
+    # -u peos_gl_create: SDL2's video driver reaches Mesa through weak
+    # symbols; LÖVE draws with OpenGL, so Mesa comes in
+    "$PREFIX/bin/$TARGET-g++" -o "$out/love.elf" "$out/obj/love.cpp.o" -Wl,-u,peos_gl_create \
         -Wl,--whole-archive "$out/liblove.a" -Wl,--no-whole-archive \
         "$W/luajit/src/libluajit.a" "$W/vorbis-peos/libvorbis-all.a" \
-        -lopenal -lfreetype -lGL-peos -ldrm -lz -lpthread -lm
+        -lSDL2 -lopenal -lfreetype -lGL-peos -ldrm -lz -lpthread -lm
     "$PREFIX/bin/$TARGET-strip" -o "$out/love" "$out/love.elf"
     echo "love: $out/love ($(du -h "$out/love" | cut -f1 | tr -d ' '))"
 }

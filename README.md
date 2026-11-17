@@ -41,19 +41,20 @@ Your saves are in `/starlight/config/love/Balatro`, next to the copy.
 
 | File or folder | What it is |
 | --- | --- |
-| `build.sh` | downloads LÖVE, LuaJIT, libogg, libvorbis and SDL2's headers (checked by SHA-256 or a fixed commit), patches and builds them |
+| `build.sh` | downloads LÖVE, LuaJIT, libogg and libvorbis (checked by SHA-256 or a fixed commit), patches and builds them |
 | `config.h` | LÖVE's modules for PeOS: all but video (Theora), physics (Box2D) and the network from Lua |
 | `patches/luajit/` | LuaJIT knows PeOS as a POSIX-like system; its random seed from `getentropy` |
 | `patches/love/` | LÖVE knows PeOS: its name, where saves go, modules left out load as nothing, `--first` (below) |
-| `sdl2/sdl2_peos.c` | the 149 SDL2 calls LÖVE uses, written over PeOS: the window, OpenGL, keys, mouse, clipboard, threads |
 | `balatro/` | balatro.app: its `app.ini`, the setup screen (a small LÖVE game), its texts and icon |
 | `tests/` | `lovecheck`, a LÖVE game that checks every part Balatro uses; `luajit_check.lua`; `mkogg.c`, a test sound |
 
 What PeOS gives the port, and how:
-- **The window** is a Starlight window whose pixels are the app's own;
-  OpenGL draws with Mesa (`peos_gl`: the Intel GPU, or virgl in a VM) and
-  each frame is copied into the window. Waiting for input is waiting on the
-  window's channel: no work while nothing happens.
+- **SDL2**: the real SDL 2.30.9, with PeOS's video and audio drivers (in
+  PeOS, `userland/ports/sdl2`). The window is a Starlight window whose
+  pixels are the app's own; OpenGL draws with Mesa (`peos_gl`: the Intel
+  GPU, or virgl in a VM) and each frame is copied into the window. Waiting
+  for input is waiting on the window's channel: no work while nothing
+  happens.
 - **The JIT**: PeOS never lets a page be writable and executable at once.
   LuaJIT writes its machine code with the page read-write, then turns it
   read-execute (`mprotect`, the capability `jit` in `app.ini`).
@@ -73,8 +74,7 @@ bundle like balatro.app with its own `args`.
 
 The port (these files) is under the **zlib license**, as LÖVE and SDL: see
 [LICENSE](LICENSE). The projects it downloads and builds keep their own
-licenses: LÖVE (zlib), LuaJIT (MIT), libogg and libvorbis (BSD), SDL2's
-headers (zlib), and the libraries inside LÖVE (see its `license.txt`).
+licenses: LÖVE (zlib), LuaJIT (MIT), libogg and libvorbis (BSD), and the libraries inside LÖVE (see its `license.txt`).
 
 Balatro is a game by LocalThunk, published by Playstack. This project is
 not affiliated with or endorsed by them, and contains none of the game's

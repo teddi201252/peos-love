@@ -19,6 +19,7 @@ becomes a PeOS app. With a PeOS checkout:
 cd peos
 make                                # the toolchain, the kernel and the system
 bash userland/ports/mesa/build.sh   # Mesa (OpenGL), FreeType and the sysroot
+bash userland/ports/sdl2/build.sh   # SDL2 with PeOS's drivers, into the sysroot
 ```
 
 Inside PeOS this port is `userland/ports/love`. This repository has the same
@@ -31,11 +32,11 @@ PEOS_DIR=/path/to/peos ./build.sh
 ## 2. LÖVE
 
 ```
-./build.sh fetch    # LuaJIT (fixed commit), LÖVE 11.5, libogg, libvorbis, SDL2's headers; patched
+./build.sh fetch    # LuaJIT (fixed commit), LÖVE 11.5, libogg, libvorbis; patched
 ./build.sh luajit   # LuaJIT 2.1, static, the JIT on
 ./build.sh vorbis   # libogg and libvorbis
 ./build.sh love     # LÖVE's 258 objects: liblove.a
-./build.sh link     # SDL2 on PeOS, OpenAL into the sysroot, the program: love
+./build.sh link     # OpenAL into the sysroot, the program: love (with SDL2 from PeOS)
 ./build.sh app      # balatro.app (LÖVE and its setup; no game in it)
 ```
 
